@@ -209,7 +209,7 @@ public class XmlExporterTests
         var options = new ExportOptions { IncludePageNumbers = false };
 
         // Act
-        var result = _exporter.Export(tocItems);
+        var result = _exporter.Export(tocItems, options);
 
         // Assert
         var doc = new XmlDocument();

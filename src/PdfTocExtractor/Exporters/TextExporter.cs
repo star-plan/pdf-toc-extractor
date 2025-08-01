@@ -54,7 +54,9 @@ public class TextExporter : IExporter
                 // 根据页码格式决定括号类型：默认中文格式使用中文括号，自定义格式使用英文括号
                 var isDefaultFormat = options.PageNumberFormat == "第 {0} 页";
                 var brackets = isDefaultFormat ? ("（", "）") : ("(", ")");
-                itemText.Append($" {brackets.Item1}{pageText}{brackets.Item2}");
+                // 中文格式不需要空格，英文格式需要空格
+                var spacing = isDefaultFormat ? "" : " ";
+                itemText.Append($"{spacing}{brackets.Item1}{pageText}{brackets.Item2}");
             }
 
             sb.AppendLine(itemText.ToString());

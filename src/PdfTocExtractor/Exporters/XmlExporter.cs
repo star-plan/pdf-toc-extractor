@@ -34,7 +34,7 @@ public class XmlExporter : IExporter
 
             // 添加元数据
             xmlWriter.WriteAttributeString("title", options.CustomTitle ?? "PDF 目录");
-            xmlWriter.WriteAttributeString("generatedAt", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            xmlWriter.WriteAttributeString("generated", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
 
             // 导出目录项
             var filteredItems = FilterByDepth(tocItems, options.MaxDepth);

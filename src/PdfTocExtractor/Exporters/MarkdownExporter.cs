@@ -63,14 +63,16 @@ public class MarkdownExporter : IExporter
                 // 根据页码格式决定括号类型：默认中文格式使用中文括号，自定义格式使用英文括号
                 var isDefaultFormat = options.PageNumberFormat == "第 {0} 页";
                 var brackets = isDefaultFormat ? ("（", "）") : ("(", ")");
+                // 中文格式不需要空格，英文格式需要空格
+                var spacing = isDefaultFormat ? "" : " ";
 
                 if (options.IncludeLinks && item.PageNumber > 0)
                 {
-                    itemText.Append($" {brackets.Item1}{pageText}{brackets.Item2}");
+                    itemText.Append($"{spacing}{brackets.Item1}{pageText}{brackets.Item2}");
                 }
                 else
                 {
-                    itemText.Append($" {brackets.Item1}{pageText}{brackets.Item2}");
+                    itemText.Append($"{spacing}{brackets.Item1}{pageText}{brackets.Item2}");
                 }
             }
 
