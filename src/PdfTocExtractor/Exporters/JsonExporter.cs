@@ -72,7 +72,7 @@ public class JsonExporter : IExporter
     {
         if (maxDepth <= 0) return items;
 
-        return items.Where(item => item.Level < maxDepth).Select(item => new TocItem
+        return items.Where(item => item.Level <= maxDepth).Select(item => new TocItem
         {
             Title = item.Title,
             Page = item.Page,

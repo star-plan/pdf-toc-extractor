@@ -117,6 +117,12 @@ public class PdfTocExtractor
     /// <param name="exporter">导出器实例</param>
     public void RegisterExporter(string format, IExporter exporter)
     {
+        if (string.IsNullOrEmpty(format))
+            throw new ArgumentException("Format cannot be null or empty.", nameof(format));
+
+        if (exporter == null)
+            throw new ArgumentNullException(nameof(exporter));
+
         _exporters[format.ToLowerInvariant()] = exporter;
     }
 

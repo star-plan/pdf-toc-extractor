@@ -22,8 +22,9 @@ public class TextExporter : IExporter
         sb.AppendLine(new string('=', title.Length));
         sb.AppendLine();
 
-        // 导出目录项
-        ExportItems(tocItems, sb, options);
+        // 过滤深度并导出目录项
+        var filteredItems = FilterByDepth(tocItems, options.MaxDepth);
+        ExportItems(filteredItems, sb, options);
 
         return sb.ToString();
     }
@@ -35,16 +36,12 @@ public class TextExporter : IExporter
         await File.WriteAllTextAsync(filePath, content, options.Encoding);
     }
 
-    private void ExportItems(IEnumerable<TocItem> items, StringBuilder sb, ExportOptions options, int currentDepth = 0)
+    private void ExportItems(IEnumerable<TocItem> items, StringBuilder sb, ExportOptions options)
     {
         foreach (var item in items)
         {
-            // 检查最大深度限制
-            if (options.MaxDepth > 0 && currentDepth >= options.MaxDepth)
-                continue;
-
             // 生成缩进
-            var indent = new string(' ', item.Level * options.IndentString.Length);
+            var indent = string.Concat(Enumerable.Repeat(options.IndentString, item.Level));
 
             // 构建项目文本
             var itemText = new StringBuilder();
@@ -54,7 +51,10 @@ public class TextExporter : IExporter
             if (options.IncludePageNumbers && !string.IsNullOrEmpty(item.Page) && item.Page != "无页码" && item.Page != "N/A")
             {
                 var pageText = string.Format(options.PageNumberFormat, item.Page);
-                itemText.Append($"（{pageText}）");
+                // 根据页码格式决定括号类型：默认中文格式使用中文括号，自定义格式使用英文括号
+                var isDefaultFormat = options.PageNumberFormat == "第 {0} 页";
+                var brackets = isDefaultFormat ? ("（", "）") : ("(", ")");
+                itemText.Append($" {brackets.Item1}{pageText}{brackets.Item2}");
             }
 
             sb.AppendLine(itemText.ToString());
@@ -62,8 +62,22 @@ public class TextExporter : IExporter
             // 递归处理子项目
             if (item.HasChildren)
             {
-                ExportItems(item.Children, sb, options, currentDepth + 1);
+                ExportItems(item.Children, sb, options);
             }
         }
+    }
+
+    private IEnumerable<TocItem> FilterByDepth(IEnumerable<TocItem> items, int maxDepth)
+    {
+        if (maxDepth <= 0) return items;
+
+        return items.Where(item => item.Level <= maxDepth).Select(item => new TocItem
+        {
+            Title = item.Title,
+            Page = item.Page,
+            Level = item.Level,
+            Parent = item.Parent,
+            Children = FilterByDepth(item.Children, maxDepth).ToList()
+        });
     }
 }

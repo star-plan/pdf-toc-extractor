@@ -130,7 +130,49 @@ public class DebugTest
         System.Console.WriteLine($"Length: {result.Length}");
         System.Console.WriteLine($"Content: '{result}'");
         System.Console.WriteLine("=== End ===");
-        
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public void Debug_MarkdownExporter_MaxDepth()
+    {
+        // Arrange
+        var exporter = new MarkdownExporter();
+        var tocItems = new List<TocItem>
+        {
+            new TocItem
+            {
+                Title = "Chapter 1",
+                Page = "5",
+                Level = 0,
+                Children = new List<TocItem>
+                {
+                    new TocItem
+                    {
+                        Title = "Section 1.1",
+                        Page = "6",
+                        Level = 1,
+                        Children = new List<TocItem>
+                        {
+                            new TocItem { Title = "Subsection 1.1.1", Page = "7", Level = 2 }
+                        }
+                    }
+                }
+            }
+        };
+        var options = new ExportOptions { MaxDepth = 1 };
+
+        // Act
+        var result = exporter.Export(tocItems, options);
+
+        // Assert - 输出实际结果以便调试
+        System.Console.WriteLine("=== Markdown MaxDepth Test ===");
+        System.Console.WriteLine($"MaxDepth: {options.MaxDepth}");
+        System.Console.WriteLine($"Length: {result.Length}");
+        System.Console.WriteLine($"Content: '{result}'");
+        System.Console.WriteLine("=== End ===");
+
         Assert.NotNull(result);
     }
 }
