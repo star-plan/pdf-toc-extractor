@@ -1,4 +1,4 @@
-﻿using iTextSharp.text.pdf;
+﻿using iText.Kernel.Pdf;
 using PdfTocExtractor.Exporters;
 using PdfTocExtractor.Models;
 
@@ -39,12 +39,17 @@ public class PdfTocExtractor
         try
         {
             using var reader = new PdfReader(pdfPath);
-            var bookmarks = SimpleBookmark.GetBookmark(reader);
-            
+            using var pdfDoc = new PdfDocument(reader);
+
+            var outlines = pdfDoc.GetOutlines(false);
+            if (outlines == null)
+                throw new InvalidOperationException("此PDF文件没有目录（书签）信息");
+
+            var bookmarks = outlines.GetAllChildren();
             if (bookmarks == null || bookmarks.Count == 0)
                 throw new InvalidOperationException("此PDF文件没有目录（书签）信息");
 
-            return ConvertBookmarksToTocItems(bookmarks);
+            return ConvertBookmarksToTocItems(bookmarks, pdfDoc);
         }
         catch (Exception ex) when (!(ex is FileNotFoundException || ex is InvalidOperationException))
         {
@@ -138,9 +143,9 @@ public class PdfTocExtractor
     }
 
     /// <summary>
-    /// 将iTextSharp的书签转换为TocItem对象
+    /// 将iText的书签转换为TocItem对象
     /// </summary>
-    private List<TocItem> ConvertBookmarksToTocItems(IList<Dictionary<string, object>> bookmarks, TocItem? parent = null, int level = 0)
+    private List<TocItem> ConvertBookmarksToTocItems(IList<PdfOutline> bookmarks, PdfDocument pdfDoc, TocItem? parent = null, int level = 0)
     {
         var tocItems = new List<TocItem>();
 
@@ -149,15 +154,16 @@ public class PdfTocExtractor
             var tocItem = new TocItem
             {
                 Title = GetBookmarkTitle(bookmark),
-                Page = GetBookmarkPage(bookmark),
+                Page = GetBookmarkPage(bookmark, pdfDoc),
                 Level = level,
                 Parent = parent
             };
 
             // 处理子书签
-            if (bookmark.TryGetValue("Kids", out var kidsObj) && kidsObj is IList<Dictionary<string, object>> kids)
+            var children = bookmark.GetAllChildren();
+            if (children != null && children.Count > 0)
             {
-                tocItem.Children = ConvertBookmarksToTocItems(kids, tocItem, level + 1);
+                tocItem.Children = ConvertBookmarksToTocItems(children, pdfDoc, tocItem, level + 1);
             }
 
             tocItems.Add(tocItem);
@@ -169,25 +175,56 @@ public class PdfTocExtractor
     /// <summary>
     /// 获取书签标题
     /// </summary>
-    private static string GetBookmarkTitle(Dictionary<string, object> bookmark)
+    private static string GetBookmarkTitle(PdfOutline bookmark)
     {
-        return bookmark.TryGetValue("Title", out var titleObj) && titleObj is string title 
-            ? title 
-            : "无标题";
+        var title = bookmark.GetTitle();
+        return string.IsNullOrEmpty(title) ? "无标题" : title;
     }
 
     /// <summary>
     /// 获取书签页码
     /// </summary>
-    private static string GetBookmarkPage(Dictionary<string, object> bookmark)
+    private static string GetBookmarkPage(PdfOutline bookmark, PdfDocument pdfDoc)
     {
-        if (!bookmark.TryGetValue("Page", out var pageObj) || pageObj is not string page)
-            return "无页码";
+        try
+        {
+            var destination = bookmark.GetDestination();
+            if (destination != null && destination.GetPdfObject() != null)
+            {
+                // 尝试从目标对象中提取页码信息
+                var destObj = destination.GetPdfObject();
+                if (destObj.IsArray())
+                {
+                    var array = (PdfArray)destObj;
+                    if (array.Size() > 0)
+                    {
+                        var pageRef = array.Get(0);
+                        if (pageRef != null && pageRef.IsIndirectReference())
+                        {
+                            // 通过页面引用获取页码
+                            var pageDict = pageRef.GetIndirectReference().GetRefersTo();
+                            if (pageDict != null)
+                            {
+                                // 遍历所有页面找到匹配的页码
+                                for (int i = 1; i <= pdfDoc.GetNumberOfPages(); i++)
+                                {
+                                    var page = pdfDoc.GetPage(i);
+                                    if (page.GetPdfObject().Equals(pageDict))
+                                    {
+                                        return i.ToString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // 如果获取页码失败，返回默认值
+        }
 
-        // 处理 "5 XYZ ..." 格式，只取页码部分
-        if (page.Contains(' '))
-            page = page.Split(' ')[0];
-
-        return page;
+        return "无页码";
     }
 }

@@ -123,7 +123,7 @@ extractor.RegisterExporter("custom", new CustomExporter());
 
 ## 依赖项
 
-- iTextSharp 5.5.13.4 - PDF处理
+- iText 9.2.0 - PDF处理（现代化的PDF库，替代了iTextSharp）
 - Newtonsoft.Json 13.0.3 - JSON序列化
 - System.CommandLine 2.0.0-beta4 - 命令行解析（仅CLI工具）
 
