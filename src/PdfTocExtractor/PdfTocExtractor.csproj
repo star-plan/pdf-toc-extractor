@@ -5,14 +5,22 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+        <!-- 包信息 -->
         <PackageId>PdfTocExtractor</PackageId>
-        <PackageVersion>1.0.0</PackageVersion>
-        <Authors>Your Name</Authors>
-        <Description>A library for extracting table of contents (TOC) from PDF files with support for multiple output formats.</Description>
-        <PackageTags>pdf;toc;table-of-contents;extraction;bookmark</PackageTags>
-        <RepositoryUrl>https://github.com/yourusername/PdfTocExtractor</RepositoryUrl>
+        <Version>1.0.0</Version>
+        <Authors>DealiAxy</Authors>
+        <Description>A library for extracting table of contents (TOC) from PDF files with support for multiple output formats including JSON, XML, and plain text.</Description>
+        <PackageTags>pdf;toc;table-of-contents;extraction;bookmark;DealiAxy;itext</PackageTags>
+        <PackageProjectUrl>https://github.com/star-plan/pdf-toc-extractor</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/star-plan/pdf-toc-extractor</RepositoryUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="itext" Version="9.2.0" />

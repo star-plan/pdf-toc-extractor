@@ -14,12 +14,14 @@
 
         <!-- 包信息 -->
         <PackageId>PdfTocExtractor.Cli</PackageId>
-        <PackageVersion>1.0.0</PackageVersion>
-        <Authors>Your Name</Authors>
+        <Version>1.0.0</Version>
+        <Authors>DealiAxy</Authors>
         <Description>A command-line tool for extracting table of contents (TOC) from PDF files with support for multiple output formats. Includes diagnostic tools for troubleshooting PDF reading issues.</Description>
-        <PackageTags>pdf;toc;table-of-contents;extraction;bookmark;cli;tool;dotnet-tool</PackageTags>
-        <RepositoryUrl>https://github.com/yourusername/PdfTocExtractor</RepositoryUrl>
+        <PackageTags>pdf;toc;table-of-contents;extraction;bookmark;cli;tool;dotnet-tool;DealiAxy</PackageTags>
+        <PackageProjectUrl>https://github.com/star-plan/pdf-toc-extractor</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/star-plan/pdf-toc-extractor</RepositoryUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <GeneratePackageOnBuild Condition="'$(PublishAot)' != 'true'">true</GeneratePackageOnBuild>
 
         <!-- AOT编译基础设置 -->
@@ -38,6 +40,10 @@
         <!-- PDF处理可能需要的额外设置 -->
         <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
     </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
