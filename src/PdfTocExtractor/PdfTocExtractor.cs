@@ -36,25 +36,8 @@ public class PdfTocExtractor
         if (!File.Exists(pdfPath))
             throw new FileNotFoundException($"PDF文件不存在: {pdfPath}");
 
-        try
-        {
-            using var reader = new PdfReader(pdfPath);
-            using var pdfDoc = new PdfDocument(reader);
-
-            var outlines = pdfDoc.GetOutlines(false);
-            if (outlines == null)
-                throw new InvalidOperationException("此PDF文件没有目录（书签）信息");
-
-            var bookmarks = outlines.GetAllChildren();
-            if (bookmarks == null || bookmarks.Count == 0)
-                throw new InvalidOperationException("此PDF文件没有目录（书签）信息");
-
-            return ConvertBookmarksToTocItems(bookmarks, pdfDoc);
-        }
-        catch (Exception ex) when (!(ex is FileNotFoundException || ex is InvalidOperationException))
-        {
-            throw new InvalidOperationException($"读取PDF文件时发生错误: {ex.Message}", ex);
-        }
+        // 尝试多种方式读取PDF
+        return TryExtractWithDifferentMethods(pdfPath);
     }
 
     /// <summary>
@@ -226,5 +209,146 @@ public class PdfTocExtractor
         }
 
         return "无页码";
+    }
+
+    /// <summary>
+    /// 尝试使用不同方法读取PDF文件
+    /// </summary>
+    private List<TocItem> TryExtractWithDifferentMethods(string pdfPath)
+    {
+        var exceptions = new List<Exception>();
+
+        // 方法1: 标准读取
+        try
+        {
+            using var reader = new PdfReader(pdfPath);
+            using var pdfDoc = new PdfDocument(reader);
+            return ExtractTocFromDocument(pdfDoc);
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(new Exception("标准读取失败", ex));
+        }
+
+        // 方法2: 使用空密码
+        try
+        {
+            var readerProperties = new ReaderProperties().SetPassword(new byte[0]);
+            using var reader = new PdfReader(pdfPath, readerProperties);
+            using var pdfDoc = new PdfDocument(reader);
+            return ExtractTocFromDocument(pdfDoc);
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(new Exception("空密码读取失败", ex));
+        }
+
+        // 方法3: 使用null密码
+        try
+        {
+            var readerProperties = new ReaderProperties().SetPassword(null);
+            using var reader = new PdfReader(pdfPath, readerProperties);
+            using var pdfDoc = new PdfDocument(reader);
+            return ExtractTocFromDocument(pdfDoc);
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(new Exception("null密码读取失败", ex));
+        }
+
+        // 方法3.5: 尝试常见的空密码变体
+        var commonPasswords = new string[] { "", " ", "owner", "user", "password", "123456" };
+        foreach (var password in commonPasswords)
+        {
+            try
+            {
+                var readerProperties = new ReaderProperties().SetPassword(System.Text.Encoding.UTF8.GetBytes(password));
+                using var reader = new PdfReader(pdfPath, readerProperties);
+                using var pdfDoc = new PdfDocument(reader);
+                return ExtractTocFromDocument(pdfDoc);
+            }
+            catch (Exception ex)
+            {
+                exceptions.Add(new Exception($"密码'{password}'读取失败", ex));
+            }
+        }
+
+        // 方法4: 使用SetUnethicalReading
+        try
+        {
+            using var reader = new PdfReader(pdfPath).SetUnethicalReading(true);
+            using var pdfDoc = new PdfDocument(reader);
+            return ExtractTocFromDocument(pdfDoc);
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(new Exception("SetUnethicalReading读取失败", ex));
+        }
+
+        // 方法5: 尝试组合SetUnethicalReading和空密码
+        try
+        {
+            var readerProperties = new ReaderProperties().SetPassword(new byte[0]);
+            using var reader = new PdfReader(pdfPath, readerProperties).SetUnethicalReading(true);
+            using var pdfDoc = new PdfDocument(reader);
+            return ExtractTocFromDocument(pdfDoc);
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(new Exception("SetUnethicalReading+空密码读取失败", ex));
+        }
+
+        // 方法6: 尝试组合SetUnethicalReading和null密码
+        try
+        {
+            var readerProperties = new ReaderProperties().SetPassword(null);
+            using var reader = new PdfReader(pdfPath, readerProperties).SetUnethicalReading(true);
+            using var pdfDoc = new PdfDocument(reader);
+            return ExtractTocFromDocument(pdfDoc);
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(new Exception("SetUnethicalReading+null密码读取失败", ex));
+        }
+
+        // 如果所有方法都失败，抛出详细的错误信息
+        var errorMessage = "所有读取方法都失败了。尝试的方法：\n";
+        for (int i = 0; i < exceptions.Count; i++)
+        {
+            errorMessage += $"{i + 1}. {exceptions[i].Message}: {exceptions[i].InnerException?.Message}\n";
+        }
+
+        // 检查是否是加密相关的问题
+        var hasEncryptionError = exceptions.Any(ex =>
+            ex.InnerException?.GetType().Name.Contains("PdfEncryption") == true ||
+            ex.InnerException?.Message.Contains("encryption") == true ||
+            ex.InnerException?.Message.Contains("password") == true ||
+            ex.InnerException?.Message.Contains("encrypted") == true);
+
+        if (hasEncryptionError)
+        {
+            errorMessage += "\n这似乎是一个加密相关的问题。可能的解决方案：";
+            errorMessage += "\n1. PDF文件可能需要密码，请联系文档提供者获取密码";
+            errorMessage += "\n2. PDF文件使用了不支持的加密方式";
+            errorMessage += "\n3. 尝试使用其他PDF处理工具先解密文件";
+        }
+
+        throw new InvalidOperationException(errorMessage);
+    }
+
+    /// <summary>
+    /// 从PdfDocument提取目录
+    /// </summary>
+    private List<TocItem> ExtractTocFromDocument(PdfDocument pdfDoc)
+    {
+        var outlines = pdfDoc.GetOutlines(false);
+        if (outlines == null)
+            throw new InvalidOperationException("此PDF文件没有目录（书签）信息");
+
+        var bookmarks = outlines.GetAllChildren();
+        if (bookmarks == null || bookmarks.Count == 0)
+            throw new InvalidOperationException("此PDF文件没有目录（书签）信息");
+
+        return ConvertBookmarksToTocItems(bookmarks, pdfDoc);
     }
 }

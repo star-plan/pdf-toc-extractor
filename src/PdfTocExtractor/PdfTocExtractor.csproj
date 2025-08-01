@@ -16,6 +16,7 @@
 
     <ItemGroup>
         <PackageReference Include="itext" Version="9.2.0" />
+        <PackageReference Include="itext7.bouncy-castle-adapter" Version="9.2.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     </ItemGroup>
 
