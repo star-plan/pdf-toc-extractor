@@ -1,0 +1,93 @@
+name: 持续集成
+run-name: ${{ github.actor }} 正在运行CI检查 🔍
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # 代码质量检查和测试
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      
+      - name: 缓存NuGet包
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+      
+      - name: 恢复依赖
+        run: dotnet restore
+      
+      - name: 代码格式检查
+        run: dotnet format --verify-no-changes --verbosity diagnostic
+      
+      - name: 构建项目
+        run: dotnet build --no-restore --configuration Release
+      
+      - name: 运行测试
+        run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
+      
+      - name: 上传测试覆盖率
+        uses: codecov/codecov-action@v3
+        with:
+          files: '**/coverage.cobertura.xml'
+          fail_ci_if_error: false
+
+  # AOT编译测试
+  aot-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      
+      - name: 安装Linux依赖
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang zlib1g-dev libkrb5-dev
+      
+      - name: 恢复依赖
+        run: dotnet restore
+      
+      - name: AOT编译测试 (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: dotnet publish src/PdfTocExtractor.Cli/PdfTocExtractor.Cli.csproj -c Release -r linux-x64 --self-contained true -p:PublishAot=true -o ./test-publish
+      
+      - name: AOT编译测试 (Windows)
+        if: matrix.os == 'windows-latest'
+        run: dotnet publish src/PdfTocExtractor.Cli/PdfTocExtractor.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishAot=true -o ./test-publish
+      
+      - name: AOT编译测试 (macOS)
+        if: matrix.os == 'macos-latest'
+        run: dotnet publish src/PdfTocExtractor.Cli/PdfTocExtractor.Cli.csproj -c Release -r osx-x64 --self-contained true -p:PublishAot=true -o ./test-publish
+      
+      - name: 测试可执行文件 (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: ./test-publish/pdftoc --help
+      
+      - name: 测试可执行文件 (Windows)
+        if: matrix.os == 'windows-latest'
+        run: .\test-publish\pdftoc.exe --help

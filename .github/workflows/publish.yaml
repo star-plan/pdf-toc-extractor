@@ -1,0 +1,223 @@
+name: 发布PdfTocExtractor
+run-name: ${{ github.actor }} 正在发布PdfTocExtractor 🚀
+
+on:
+  push:
+    tags:
+      - "v*.*.*"  # 版本格式匹配
+
+# 为整个工作流设置权限
+permissions:
+  contents: write
+  id-token: write
+  issues: write
+
+jobs:
+  # 第一步：运行测试
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取所有历史记录用于版本号计算
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      
+      - name: 缓存NuGet包
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+      
+      - name: 恢复依赖
+        run: dotnet restore
+      
+      - name: 运行测试
+        run: dotnet test --no-restore --verbosity normal
+
+  # 第二步：发布NuGet包
+  publish-nuget:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取所有历史记录用于版本号计算
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      
+      - name: 缓存NuGet包
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+      
+      - name: 提取版本号
+        id: get_version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: 恢复依赖
+        run: dotnet restore
+      
+      - name: 构建核心库
+        run: dotnet build --no-restore -c Release --nologo src/PdfTocExtractor/PdfTocExtractor.csproj -p:Version=${{ steps.get_version.outputs.VERSION }}
+      
+      - name: 构建CLI工具
+        run: dotnet build --no-restore -c Release --nologo src/PdfTocExtractor.Cli/PdfTocExtractor.Cli.csproj -p:Version=${{ steps.get_version.outputs.VERSION }}
+      
+      - name: 创建核心库NuGet包
+        run: dotnet pack -c Release src/PdfTocExtractor/PdfTocExtractor.csproj -p:PackageVersion=${{ steps.get_version.outputs.VERSION }} --no-build --output ./nupkg
+        
+      - name: 创建CLI工具NuGet包
+        run: dotnet pack -c Release src/PdfTocExtractor.Cli/PdfTocExtractor.Cli.csproj -p:PackageVersion=${{ steps.get_version.outputs.VERSION }} --no-build --output ./nupkg
+        
+      - name: 发布到NuGet Gallery
+        run: dotnet nuget push ./nupkg/*.nupkg --api-key ${{ secrets.NUGET_GALLERY_TOKEN }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+  # 第三步：编译各平台可执行文件
+  build-executables:
+    needs: publish-nuget  # 确保在NuGet包发布后运行
+    strategy:
+      fail-fast: false
+      matrix:
+        kind: ['windows', 'linux', 'macOS']
+        include:
+          - kind: windows
+            os: windows-latest
+            target: win-x64
+            extension: '.zip'
+          - kind: linux
+            os: ubuntu-latest
+            target: linux-x64
+            extension: '.tar.gz'
+          - kind: macOS
+            os: macos-latest
+            target: osx-x64
+            extension: '.tar.gz'
+
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取所有历史记录用于版本号计算
+      
+      - name: 提取版本号
+        id: get_version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      
+      - name: 缓存NuGet包
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+      
+      - name: 安装Linux依赖
+        if: matrix.kind == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang zlib1g-dev libkrb5-dev
+
+      - name: 设置Windows环境
+        if: matrix.kind == 'windows'
+        shell: pwsh
+        run: |
+          Write-Host "设置Windows编译环境..."
+          # 确保有最新的开发者工具
+          choco install visualstudio2022buildtools -y --no-progress
+      
+      - name: 恢复依赖
+        run: dotnet restore
+      
+      - name: AOT编译
+        run: |
+          echo "正在为 ${{ matrix.kind }} 平台进行AOT编译..."
+          dotnet publish src/PdfTocExtractor.Cli/PdfTocExtractor.Cli.csproj -c Release -r ${{ matrix.target }} --self-contained true -p:PublishAot=true -p:Version=${{ steps.get_version.outputs.VERSION }} -o ./publish/${{ matrix.kind }}
+      
+      - name: 打包Windows可执行文件
+        if: matrix.kind == 'windows'
+        run: |
+          cd ./publish/${{ matrix.kind }}
+          7z a -tzip ../../PdfTocExtractor-${{ matrix.kind }}-${{ steps.get_version.outputs.VERSION }}${{ matrix.extension }} *
+      
+      - name: 打包Linux/macOS可执行文件
+        if: matrix.kind != 'windows'
+        run: |
+          cd ./publish/${{ matrix.kind }}
+          tar -czvf ../../PdfTocExtractor-${{ matrix.kind }}-${{ steps.get_version.outputs.VERSION }}${{ matrix.extension }} *
+      
+      # 上传构建产物作为工作流构件(artifacts)
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: PdfTocExtractor-${{ matrix.kind }}-${{ steps.get_version.outputs.VERSION }}
+          path: ./PdfTocExtractor-${{ matrix.kind }}-${{ steps.get_version.outputs.VERSION }}${{ matrix.extension }}
+          retention-days: 1
+
+  # 第四步：统一上传所有平台可执行文件到GitHub Release
+  upload-to-release:
+    needs: build-executables
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 提取版本号
+        id: get_version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      # 下载所有平台构建产物
+      - name: 下载Windows构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: PdfTocExtractor-windows-${{ steps.get_version.outputs.VERSION }}
+          path: ./artifacts
+      
+      - name: 下载Linux构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: PdfTocExtractor-linux-${{ steps.get_version.outputs.VERSION }}
+          path: ./artifacts
+      
+      - name: 下载macOS构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: PdfTocExtractor-macOS-${{ steps.get_version.outputs.VERSION }}
+          path: ./artifacts
+      
+      # 列出下载的文件以确认
+      - name: 列出下载的文件
+        run: ls -la ./artifacts
+      
+      # 统一上传到GitHub Release
+      - name: 上传所有文件到GitHub Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: ./artifacts/*
+          tag_name: ${{ github.ref }}
+          fail_on_unmatched_files: false
+          draft: false
+          name: PdfTocExtractor 版本 ${{ steps.get_version.outputs.VERSION }}
+          generate_release_notes: true
