@@ -93,6 +93,7 @@ private static string GetBookmarkPage(PdfOutline bookmark, PdfDocument pdfDoc)
 - ✅ **类型安全**: 更强的类型检查
 - ✅ **异常处理**: 更清晰的错误信息
 - ✅ **调试支持**: 更好的调试体验
+- ✅ **诊断工具**: 新增 `pdftoc diagnose` 命令用于故障排除
 
 ## 测试结果
 

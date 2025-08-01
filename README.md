@@ -72,6 +72,9 @@ pdftoc extract document.pdf -o output.md --include-pages --include-links
 
 # 显示详细输出
 pdftoc extract document.pdf -o output.md --verbose
+
+# 诊断PDF文件问题（当遇到读取错误时很有用）
+pdftoc diagnose document.pdf
 ```
 
 ### 作为库使用
@@ -213,12 +216,50 @@ public class CustomExporter : IExporter
 extractor.RegisterExporter("custom", new CustomExporter());
 ```
 
+## 🔧 故障排除
+
+### 常见问题
+
+#### "PdfEncryption exception" 错误
+
+如果遇到此错误，通常是因为PDF文件使用了加密或权限保护。请尝试以下解决方案：
+
+1. **使用诊断命令**：
+   ```bash
+   pdftoc diagnose your-document.pdf
+   ```
+   这会显示PDF文件的详细信息，帮助诊断问题。
+
+2. **检查依赖**：确保已安装 `itext7.bouncy-castle-adapter` 包：
+   ```bash
+   dotnet add package itext7.bouncy-castle-adapter
+   ```
+
+3. **PDF文件类型**：
+   - ✅ 支持：有权限保护但无用户密码的PDF
+   - ✅ 支持：未加密的PDF
+   - ❌ 不支持：需要用户密码的PDF（功能开发中）
+
+#### "此PDF文件没有目录（书签）信息" 错误
+
+这表示PDF文件确实没有嵌入的书签/目录信息。可以：
+- 使用诊断命令确认：`pdftoc diagnose your-document.pdf`
+- 检查PDF是否在其他阅读器中显示目录面板
+- 考虑使用其他工具为PDF添加书签
+
+#### 输出文件为空或格式错误
+
+1. 检查输入PDF是否有有效的目录结构
+2. 尝试不同的输出格式：`-f json` 或 `-f xml`
+3. 使用 `--verbose` 选项查看详细处理信息
+
 ## 🛠️ 技术实现
 
 PdfTocExtractor 使用以下技术：
 
 - **.NET 8.0** - 现代化的.NET平台
 - **[iText 9.2.0](https://github.com/itext/itext7-dotnet)** - 强大的PDF处理库
+- **[iText7.bouncy-castle-adapter 9.2.0](https://www.nuget.org/packages/itext7.bouncy-castle-adapter)** - 加密PDF支持（必需）
 - **[Newtonsoft.Json 13.0.3](https://github.com/JamesNK/Newtonsoft.Json)** - JSON序列化
 - **[System.CommandLine 2.0.0](https://github.com/dotnet/command-line-api)** - 命令行参数解析
 - **AOT编译支持** - 原生性能，无需.NET运行时

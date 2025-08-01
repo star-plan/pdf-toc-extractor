@@ -16,7 +16,7 @@
         <PackageId>PdfTocExtractor.Cli</PackageId>
         <PackageVersion>1.0.0</PackageVersion>
         <Authors>Your Name</Authors>
-        <Description>A command-line tool for extracting table of contents (TOC) from PDF files with support for multiple output formats.</Description>
+        <Description>A command-line tool for extracting table of contents (TOC) from PDF files with support for multiple output formats. Includes diagnostic tools for troubleshooting PDF reading issues.</Description>
         <PackageTags>pdf;toc;table-of-contents;extraction;bookmark;cli;tool;dotnet-tool</PackageTags>
         <RepositoryUrl>https://github.com/yourusername/PdfTocExtractor</RepositoryUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
