@@ -15,7 +15,7 @@ public class XmlExporter : IExporter
     public string Export(IEnumerable<TocItem> tocItems, ExportOptions? options = null)
     {
         options ??= new ExportOptions();
-        
+
         var settings = new XmlWriterSettings
         {
             Indent = true,
@@ -24,27 +24,35 @@ public class XmlExporter : IExporter
             OmitXmlDeclaration = false
         };
 
-        using var stringWriter = new StringWriter();
-        using var xmlWriter = XmlWriter.Create(stringWriter, settings);
-        
-        xmlWriter.WriteStartDocument();
-        xmlWriter.WriteStartElement("PdfTableOfContents");
-        
-        // 添加元数据
-        xmlWriter.WriteAttributeString("title", options.CustomTitle ?? "PDF 目录");
-        xmlWriter.WriteAttributeString("generatedAt", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-        
-        // 导出目录项
-        var filteredItems = FilterByDepth(tocItems, options.MaxDepth);
-        foreach (var item in filteredItems)
+        var stringWriter = new StringWriter();
+        try
         {
-            WriteItem(xmlWriter, item, options);
+            using var xmlWriter = XmlWriter.Create(stringWriter, settings);
+
+            xmlWriter.WriteStartDocument();
+            xmlWriter.WriteStartElement("PdfTableOfContents");
+
+            // 添加元数据
+            xmlWriter.WriteAttributeString("title", options.CustomTitle ?? "PDF 目录");
+            xmlWriter.WriteAttributeString("generatedAt", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+
+            // 导出目录项
+            var filteredItems = FilterByDepth(tocItems, options.MaxDepth);
+            foreach (var item in filteredItems)
+            {
+                WriteItem(xmlWriter, item, options);
+            }
+
+            xmlWriter.WriteEndElement(); // PdfTableOfContents
+            xmlWriter.WriteEndDocument();
+            xmlWriter.Flush(); // 确保所有内容都写入StringWriter
+
+            return stringWriter.ToString();
         }
-        
-        xmlWriter.WriteEndElement(); // PdfTableOfContents
-        xmlWriter.WriteEndDocument();
-        
-        return stringWriter.ToString();
+        finally
+        {
+            stringWriter.Dispose();
+        }
     }
 
     public async Task ExportToFileAsync(IEnumerable<TocItem> tocItems, string filePath, ExportOptions? options = null)

@@ -225,10 +225,10 @@ public class JsonExporterTests
 
         // Assert
         var json = JObject.Parse(result);
-        json["generated"].Should().NotBeNull();
-        
-        var generated = json["generated"]?.ToString();
-        DateTime.TryParse(generated, out var timestamp).Should().BeTrue();
+        json["generatedAt"].Should().NotBeNull();
+
+        var generatedAt = json["generatedAt"]?.ToString();
+        DateTime.TryParse(generatedAt, out var timestamp).Should().BeTrue();
         timestamp.Should().BeCloseTo(DateTime.Now, TimeSpan.FromMinutes(1));
     }
 

@@ -72,7 +72,7 @@ public class MarkdownExporterTests
 
         // Assert
         result.Should().Contain("# PDF 目录");
-        result.Should().Contain("- Chapter 1 (第 5 页)");
+        result.Should().Contain("- Chapter 1（第 5 页）");
     }
 
     [Fact]
@@ -98,9 +98,9 @@ public class MarkdownExporterTests
         var result = _exporter.Export(tocItems);
 
         // Assert
-        result.Should().Contain("- Chapter 1 (第 5 页)");
-        result.Should().Contain("  - Section 1.1 (第 6 页)");
-        result.Should().Contain("  - Section 1.2 (第 10 页)");
+        result.Should().Contain("- Chapter 1（第 5 页）");
+        result.Should().Contain("  - Section 1.1（第 6 页）");
+        result.Should().Contain("  - Section 1.2（第 10 页）");
     }
 
     [Fact]
@@ -135,8 +135,8 @@ public class MarkdownExporterTests
         var result = _exporter.Export(tocItems, options);
 
         // Assert
-        result.Should().Contain("- Chapter 1 (第 5 页)");
-        result.Should().Contain("  - Section 1.1 (第 6 页)");
+        result.Should().Contain("- Chapter 1（第 5 页）");
+        result.Should().Contain("  - Section 1.1（第 6 页）");
         result.Should().NotContain("Subsection 1.1.1");
     }
 
@@ -156,8 +156,8 @@ public class MarkdownExporterTests
         // Assert
         result.Should().Contain("- Chapter 1");
         result.Should().NotContain("第 5 页");
-        result.Should().NotContain("(");
-        result.Should().NotContain(")");
+        result.Should().NotContain("（");
+        result.Should().NotContain("）");
     }
 
     [Fact]
@@ -183,8 +183,8 @@ public class MarkdownExporterTests
         var result = _exporter.Export(tocItems, options);
 
         // Assert
-        result.Should().Contain("- Chapter 1 (第 5 页)");
-        result.Should().Contain("\t- Section 1.1 (第 6 页)");
+        result.Should().Contain("- Chapter 1（第 5 页）");
+        result.Should().Contain("\t- Section 1.1（第 6 页）");
     }
 
     [Fact]
@@ -247,7 +247,7 @@ public class MarkdownExporterTests
             File.Exists(tempFile).Should().BeTrue();
             var content = await File.ReadAllTextAsync(tempFile);
             content.Should().Contain("# Test Export");
-            content.Should().Contain("- Chapter 1 (第 5 页)");
+            content.Should().Contain("- Chapter 1（第 5 页）");
         }
         finally
         {
@@ -301,6 +301,6 @@ public class MarkdownExporterTests
         // Assert
         result.Should().NotBeNullOrEmpty();
         result.Should().Contain("# PDF 目录");
-        result.Should().Contain("- Chapter 1 (第 5 页)");
+        result.Should().Contain("- Chapter 1（第 5 页）");
     }
 }

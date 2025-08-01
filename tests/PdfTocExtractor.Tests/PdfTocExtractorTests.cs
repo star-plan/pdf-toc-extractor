@@ -134,7 +134,7 @@ public class PdfTocExtractorTests : IDisposable
         // Assert
         result.Should().NotBeNullOrEmpty();
         result.Should().Contain("# PDF 目录");
-        result.Should().Contain("- Chapter 1 (第 1 页)");
+        result.Should().Contain("- Chapter 1（第 1 页）");
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public class PdfTocExtractorTests : IDisposable
         // Assert
         result.Should().NotBeNullOrEmpty();
         result.Should().Contain("PDF 目录");
-        result.Should().Contain("- Chapter 1 (第 1 页)");
+        result.Should().Contain("- Chapter 1（第 1 页）");
     }
 
     [Fact]
@@ -187,7 +187,7 @@ public class PdfTocExtractorTests : IDisposable
         var tocItems = TestDataBuilder.CreateSimpleTocItems();
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => _extractor.ExportToString(tocItems, "unsupported"));
+        Assert.Throws<NotSupportedException>(() => _extractor.ExportToString(tocItems, "unsupported"));
     }
 
     [Fact]
@@ -264,7 +264,7 @@ public class PdfTocExtractorTests : IDisposable
         _tempFiles.Add(tempFile);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => 
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
             _extractor.ExportToFileAsync(tocItems, tempFile, "unsupported"));
     }
 

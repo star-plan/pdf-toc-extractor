@@ -46,7 +46,7 @@ public class XmlExporterTests
         var doc = new XmlDocument();
         doc.LoadXml(result);
         
-        doc.DocumentElement?.Name.Should().Be("TableOfContents");
+        doc.DocumentElement?.Name.Should().Be("PdfTableOfContents");
         doc.DocumentElement?.GetAttribute("title").Should().Be("Test Document");
         doc.DocumentElement?.ChildNodes.Count.Should().Be(0);
     }
@@ -89,9 +89,16 @@ public class XmlExporterTests
         
         var item = items?[0] as XmlElement;
         item?.Name.Should().Be("Item");
-        item?.GetAttribute("title").Should().Be("Chapter 1");
-        item?.GetAttribute("page").Should().Be("5");
         item?.GetAttribute("level").Should().Be("0");
+        item?.GetAttribute("page").Should().Be("5");
+        item?.GetAttribute("pageNumber").Should().Be("5");
+
+        // 检查子元素
+        var titleElement = item?.GetElementsByTagName("Title")[0];
+        titleElement?.InnerText.Should().Be("Chapter 1");
+
+        var fullPathElement = item?.GetElementsByTagName("FullPath")[0];
+        fullPathElement?.InnerText.Should().Be("Chapter 1");
     }
 
     [Fact]
@@ -124,17 +131,23 @@ public class XmlExporterTests
         rootItems?.Count.Should().Be(1);
         
         var chapter = rootItems?[0] as XmlElement;
-        chapter?.GetAttribute("title").Should().Be("Chapter 1");
-        
-        var children = chapter?.ChildNodes;
+        var chapterTitle = chapter?.GetElementsByTagName("Title")[0];
+        chapterTitle?.InnerText.Should().Be("Chapter 1");
+
+        var childrenContainer = chapter?.GetElementsByTagName("Children")[0];
+        childrenContainer.Should().NotBeNull();
+
+        var children = childrenContainer?.ChildNodes;
         children?.Count.Should().Be(2);
-        
+
         var section1 = children?[0] as XmlElement;
-        section1?.GetAttribute("title").Should().Be("Section 1.1");
+        var section1Title = section1?.GetElementsByTagName("Title")[0];
+        section1Title?.InnerText.Should().Be("Section 1.1");
         section1?.GetAttribute("page").Should().Be("6");
-        
+
         var section2 = children?[1] as XmlElement;
-        section2?.GetAttribute("title").Should().Be("Section 1.2");
+        var section2Title = section2?.GetElementsByTagName("Title")[0];
+        section2Title?.InnerText.Should().Be("Section 1.2");
         section2?.GetAttribute("page").Should().Be("10");
     }
 
@@ -174,10 +187,15 @@ public class XmlExporterTests
         doc.LoadXml(result);
         
         var chapter = doc.DocumentElement?.ChildNodes[0] as XmlElement;
-        var section = chapter?.ChildNodes[0] as XmlElement;
-        
-        section?.GetAttribute("title").Should().Be("Section 1.1");
-        section?.ChildNodes.Count.Should().Be(0); // Should not include subsection
+        var childrenContainer = chapter?.GetElementsByTagName("Children")[0];
+        var section = childrenContainer?.ChildNodes[0] as XmlElement;
+
+        var sectionTitle = section?.GetElementsByTagName("Title")[0];
+        sectionTitle?.InnerText.Should().Be("Section 1.1");
+
+        // 检查section没有Children元素（因为被maxDepth限制了）
+        var sectionChildren = section?.GetElementsByTagName("Children");
+        sectionChildren?.Count.Should().Be(0);
     }
 
     [Fact]
@@ -198,8 +216,10 @@ public class XmlExporterTests
         doc.LoadXml(result);
         
         var item = doc.DocumentElement?.ChildNodes[0] as XmlElement;
-        item?.GetAttribute("title").Should().Be("Chapter 1");
+        var titleElement = item?.GetElementsByTagName("Title")[0];
+        titleElement?.InnerText.Should().Be("Chapter 1");
         item?.HasAttribute("page").Should().BeFalse();
+        item?.HasAttribute("pageNumber").Should().BeFalse();
     }
 
     [Fact]
@@ -285,7 +305,8 @@ public class XmlExporterTests
         doc.LoadXml(result); // Should not throw exception
         
         var item = doc.DocumentElement?.ChildNodes[0] as XmlElement;
-        item?.GetAttribute("title").Should().Be("Chapter <1> & \"Test\"");
+        var titleElement = item?.GetElementsByTagName("Title")[0];
+        titleElement?.InnerText.Should().Be("Chapter <1> & \"Test\"");
     }
 
     [Fact]
@@ -343,7 +364,8 @@ public class XmlExporterTests
             var doc = new XmlDocument();
             doc.LoadXml(content);
             var item = doc.DocumentElement?.ChildNodes[0] as XmlElement;
-            item?.GetAttribute("title").Should().Be("测试章节");
+            var titleElement = item?.GetElementsByTagName("Title")[0];
+            titleElement?.InnerText.Should().Be("测试章节");
         }
         finally
         {
