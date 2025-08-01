@@ -5,6 +5,16 @@ using PdfTocExtractor.Models;
 namespace PdfTocExtractor.Exporters;
 
 /// <summary>
+/// JSON导出数据结构
+/// </summary>
+public class JsonExportData
+{
+    public string Title { get; set; } = string.Empty;
+    public DateTime GeneratedAt { get; set; }
+    public IEnumerable<object> Items { get; set; } = Enumerable.Empty<object>();
+}
+
+/// <summary>
 /// JSON格式导出器
 /// </summary>
 public class JsonExporter : IExporter
@@ -22,8 +32,8 @@ public class JsonExporter : IExporter
     public string Export(IEnumerable<TocItem> tocItems, ExportOptions? options = null)
     {
         options ??= new ExportOptions();
-        
-        var exportData = new
+
+        var exportData = new JsonExportData
         {
             Title = options.CustomTitle ?? "PDF 目录",
             GeneratedAt = DateTime.Now,

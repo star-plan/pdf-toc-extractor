@@ -6,16 +6,37 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AssemblyName>pdftoc</AssemblyName>
+
+        <!-- .NET Tool 配置 -->
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>pdftoc</ToolCommandName>
+        <PackageOutputPath>./nupkg</PackageOutputPath>
+
+        <!-- 包信息 -->
         <PackageId>PdfTocExtractor.Cli</PackageId>
         <PackageVersion>1.0.0</PackageVersion>
         <Authors>Your Name</Authors>
         <Description>A command-line tool for extracting table of contents (TOC) from PDF files with support for multiple output formats.</Description>
-        <PackageTags>pdf;toc;table-of-contents;extraction;bookmark;cli;tool</PackageTags>
+        <PackageTags>pdf;toc;table-of-contents;extraction;bookmark;cli;tool;dotnet-tool</PackageTags>
         <RepositoryUrl>https://github.com/yourusername/PdfTocExtractor</RepositoryUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GeneratePackageOnBuild Condition="'$(PublishAot)' != 'true'">true</GeneratePackageOnBuild>
+
+        <!-- AOT编译基础设置 -->
+        <InvariantGlobalization>true</InvariantGlobalization>
+    </PropertyGroup>
+
+    <!-- AOT发布专用设置 -->
+    <PropertyGroup Condition="'$(PublishAot)' == 'true'">
+        <PublishAot>true</PublishAot>
+        <TrimMode>partial</TrimMode>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
+        <IlcOptimizationPreference>Size</IlcOptimizationPreference>
+        <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
+        <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+        <!-- PDF处理可能需要的额外设置 -->
+        <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
     </PropertyGroup>
 
     <ItemGroup>

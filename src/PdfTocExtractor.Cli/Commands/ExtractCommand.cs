@@ -79,8 +79,8 @@ public static class ExtractCommand
                 var includePages = context.ParseResult.GetValueForOption(includePageNumbersOption);
                 var includeLinks = context.ParseResult.GetValueForOption(includeLinksOption);
                 var customTitle = context.ParseResult.GetValueForOption(customTitleOption);
-                var indent = context.ParseResult.GetValueForOption(indentOption);
-                var pageFormat = context.ParseResult.GetValueForOption(pageFormatOption);
+                var indent = context.ParseResult.GetValueForOption(indentOption) ?? "  ";
+                var pageFormat = context.ParseResult.GetValueForOption(pageFormatOption) ?? "第 {0} 页";
                 var verbose = context.ParseResult.GetValueForOption(verboseOption);
 
                 await ExecuteExtractCommand(input, output, format, maxDepth, includePages, includeLinks, customTitle, indent, pageFormat, verbose);
