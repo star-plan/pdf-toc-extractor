@@ -5,7 +5,7 @@
 ## 📋 工作流概览
 
 ### 1. 持续集成 (CI) - `ci.yaml`
-**触发条件**：推送到 `main` 或 `develop` 分支，或创建针对这些分支的Pull Request
+**触发条件**：推送到 `master` 或 `develop` 分支，或创建针对这些分支的Pull Request
 
 **功能**：
 - ✅ 代码格式检查
