@@ -9,7 +9,8 @@ class Program
     {
         var rootCommand = new RootCommand("PDF Table of Contents Extractor - 从PDF文件提取目录并导出为多种格式")
         {
-            ExtractCommand.Create()
+            ExtractCommand.Create(),
+            DiagnoseCommand.Create()
         };
 
         rootCommand.SetHandler(() =>
@@ -21,6 +22,7 @@ class Program
             Console.WriteLine("  pdftoc extract input.pdf -o output.md");
             Console.WriteLine("  pdftoc extract input.pdf -o output.json -f json");
             Console.WriteLine("  pdftoc extract input.pdf -o output.xml --max-depth 3");
+            Console.WriteLine("  pdftoc diagnose input.pdf  # 诊断PDF文件问题");
         });
 
         return await rootCommand.InvokeAsync(args);
