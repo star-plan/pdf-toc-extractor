@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>pdftoc</AssemblyName>
+        <PackAsTool>true</PackAsTool>
+        <ToolCommandName>pdftoc</ToolCommandName>
+        <PackageId>PdfTocExtractor.Cli</PackageId>
+        <PackageVersion>1.0.0</PackageVersion>
+        <Authors>Your Name</Authors>
+        <Description>A command-line tool for extracting table of contents (TOC) from PDF files with support for multiple output formats.</Description>
+        <PackageTags>pdf;toc;table-of-contents;extraction;bookmark;cli;tool</PackageTags>
+        <RepositoryUrl>https://github.com/yourusername/PdfTocExtractor</RepositoryUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\PdfTocExtractor\PdfTocExtractor.csproj" />
+    </ItemGroup>
+
+</Project>
