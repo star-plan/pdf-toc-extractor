@@ -8,7 +8,6 @@
 
         <!-- 包信息 -->
         <PackageId>PdfTocExtractor</PackageId>
-        <Version>1.0.0</Version>
         <Authors>DealiAxy</Authors>
         <Description>A library for extracting table of contents (TOC) from PDF files with support for multiple output formats including JSON, XML, and plain text.</Description>
         <PackageTags>pdf;toc;table-of-contents;extraction;bookmark;DealiAxy;itext</PackageTags>
