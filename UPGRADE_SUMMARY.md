@@ -9,6 +9,7 @@
 ### 1. 包依赖更新
 - **移除**: `iTextSharp 5.5.13.4`
 - **添加**: `itext 9.2.0`
+- **添加**: `itext7.bouncy-castle-adapter 9.2.0` (必需，用于加密PDF支持)
 
 ### 2. 命名空间变更
 ```csharp
@@ -111,6 +112,11 @@ private static string GetBookmarkPage(PdfOutline bookmark, PdfDocument pdfDoc)
 - API 有重大变更，不是简单的替换
 - 需要代码迁移，但核心功能保持一致
 - 所有现有功能都能正常工作
+
+### 加密PDF支持
+- **重要**: iText 9.x 需要额外的 `itext7.bouncy-castle-adapter` 依赖来处理加密PDF
+- 没有此依赖会导致 "PdfEncryption exception" 错误
+- 添加依赖后，可以正常处理各种加密类型的PDF文件
 
 ## 后续建议
 
