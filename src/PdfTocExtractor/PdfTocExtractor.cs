@@ -1,6 +1,7 @@
 ﻿using iText.Kernel.Pdf;
 using PdfTocExtractor.Exporters;
 using PdfTocExtractor.Models;
+using PdfTocExtractor.Semantic;
 
 namespace PdfTocExtractor;
 
@@ -94,6 +95,66 @@ public class PdfTocExtractor
         await exporter.ExportToFileAsync(tocItems, outputPath, options);
     }
 
+
+
+    /// <summary>
+    /// 使用语义分析从PDF文件提取目录
+    /// </summary>
+    /// <param name="pdfPath">PDF文件路径</param>
+    /// <param name="options">语义分析选项</param>
+    /// <returns>目录项目列表</returns>
+    /// <exception cref="FileNotFoundException">PDF文件不存在</exception>
+    /// <exception cref="InvalidOperationException">PDF文件无法读取</exception>
+    public List<TocItem> ExtractTocSemantic(string pdfPath, SemanticAnalysisOptions? options = null)
+    {
+        var extractor = new SemanticTocExtractor(options);
+        return extractor.ExtractToc(pdfPath);
+    }
+
+    /// <summary>
+    /// 异步使用语义分析从PDF文件提取目录
+    /// </summary>
+    /// <param name="pdfPath">PDF文件路径</param>
+    /// <param name="options">语义分析选项</param>
+    /// <returns>目录项目列表</returns>
+    public Task<List<TocItem>> ExtractTocSemanticAsync(string pdfPath, SemanticAnalysisOptions? options = null)
+    {
+        return Task.Run(() => ExtractTocSemantic(pdfPath, options));
+    }
+
+    /// <summary>
+    /// 智能提取目录：先尝试提取书签，失败则使用语义分析
+    /// </summary>
+    /// <param name="pdfPath">PDF文件路径</param>
+    /// <param name="semanticOptions">语义分析选项（当书签提取失败时使用）</param>
+    /// <returns>目录项目列表</returns>
+    /// <exception cref="FileNotFoundException">PDF文件不存在</exception>
+    /// <exception cref="InvalidOperationException">PDF文件无法读取且语义分析也失败</exception>
+    public List<TocItem> ExtractTocSmart(string pdfPath, SemanticAnalysisOptions? semanticOptions = null)
+    {
+        try
+        {
+            // 首先尝试提取书签
+            return ExtractToc(pdfPath);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("没有目录（书签）信息"))
+        {
+            // 如果没有书签，则使用语义分析
+            return ExtractTocSemantic(pdfPath, semanticOptions);
+        }
+    }
+
+    /// <summary>
+    /// 异步智能提取目录
+    /// </summary>
+    /// <param name="pdfPath">PDF文件路径</param>
+    /// <param name="semanticOptions">语义分析选项</param>
+    /// <returns>目录项目列表</returns>
+    public Task<List<TocItem>> ExtractTocSmartAsync(string pdfPath, SemanticAnalysisOptions? semanticOptions = null)
+    {
+        return Task.Run(() => ExtractTocSmart(pdfPath, semanticOptions));
+    }
+
     /// <summary>
     /// 从PDF文件提取目录并直接导出到文件
     /// </summary>
@@ -106,6 +167,23 @@ public class PdfTocExtractor
         var tocItems = await ExtractTocAsync(pdfPath);
         await ExportToFileAsync(tocItems, outputPath, format, options);
     }
+
+    /// <summary>
+    /// 智能提取目录并直接导出到文件
+    /// </summary>
+    /// <param name="pdfPath">PDF文件路径</param>
+    /// <param name="outputPath">输出文件路径</param>
+    /// <param name="format">导出格式（如果为空则根据文件扩展名推断）</param>
+    /// <param name="exportOptions">导出选项</param>
+    /// <param name="semanticOptions">语义分析选项</param>
+    public async Task ExtractSmartAndExportAsync(string pdfPath, string outputPath, string? format = null,
+        ExportOptions? exportOptions = null, SemanticAnalysisOptions? semanticOptions = null)
+    {
+        var tocItems = await ExtractTocSmartAsync(pdfPath, semanticOptions);
+        await ExportToFileAsync(tocItems, outputPath, format, exportOptions);
+    }
+
+
 
     /// <summary>
     /// 获取支持的导出格式列表

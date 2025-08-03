@@ -80,6 +80,13 @@ catch (FileNotFoundException ex)
 catch (InvalidOperationException ex)
 {
     Console.WriteLine($"错误: {ex.Message}");
+
+    if (ex.Message.Contains("没有目录（书签）信息"))
+    {
+        Console.WriteLine();
+        Console.WriteLine("这个PDF没有嵌入的书签信息。");
+        Console.WriteLine("语义分析功能正在开发中，敬请期待！");
+    }
 }
 catch (Exception ex)
 {

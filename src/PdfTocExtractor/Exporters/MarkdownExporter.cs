@@ -40,7 +40,8 @@ public class MarkdownExporter : IExporter
         foreach (var item in items)
         {
             // 生成缩进
-            var indent = string.Concat(Enumerable.Repeat(options.IndentString, item.Level));
+            var indentLevel = Math.Max(0, item.Level);
+            var indent = string.Concat(Enumerable.Repeat(options.IndentString, indentLevel));
 
             // 构建项目文本
             var itemText = new StringBuilder();

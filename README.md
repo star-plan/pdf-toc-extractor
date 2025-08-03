@@ -7,13 +7,14 @@
 
 PdfTocExtractor 是一个纯 C# AOT 实现的轻量级PDF目录提取工具，用于从PDF文件中提取目录（TOC）并导出为多种格式。支持Markdown、JSON、XML、纯文本等格式，完全摆脱命令行依赖，无需额外的PDF处理工具，适合在 .NET 项目中内嵌、分发或集成自动化流程中使用。
 
-通过PdfTocExtractor，您可以轻松从PDF文档中提取书签和目录结构，生成清晰的导航文档，完美适用于文档处理、内容分析和自动化工作流。
+通过PdfTocExtractor，您可以轻松从PDF文档中提取书签和目录结构，生成清晰的导航文档。**v2.0新增的语义分析功能**让您即使在PDF没有嵌入书签的情况下，也能通过基于NLP的智能分析自动识别章节标题，完美适用于文档处理、内容分析和自动化工作流。
 
 🚀 跨平台、零依赖、极速提取，一切尽在 PdfTocExtractor！
 
 ## ✨ 功能特点
 
 - 📖 从PDF文件提取书签/目录信息
+- 🧠 **语义分析功能**：基于NLP的智能章节标题识别，适用于无书签PDF
 - 📄 支持多种输出格式：Markdown、JSON、XML、纯文本
 - 🎯 可配置的导出选项（层级深度、页码格式等）
 - 🔧 可扩展的导出器架构，支持自定义格式
@@ -21,6 +22,7 @@ PdfTocExtractor 是一个纯 C# AOT 实现的轻量级PDF目录提取工具，�
 - 🛠️ 提供命令行工具和NuGet包
 - 🚀 支持AOT编译，原生性能无需.NET运行时
 - 🌐 跨平台支持：Windows、Linux、macOS
+- 🎛️ 多种分析模式：默认、严格、宽松模式可选
 
 ## 📦 安装
 
@@ -55,25 +57,43 @@ dotnet build -c Release
 ### 命令行工具使用
 
 ```bash
-# 基本用法 - 提取PDF目录并保存为Markdown
+# 🌟 智能提取（推荐）- 自动选择最佳方法
+pdftoc smart document.pdf -o output.md
+
+# 📖 提取PDF书签（传统方法）
 pdftoc extract document.pdf -o output.md
 
+# 🧠 语义分析（v2.0新功能 - 适用于无书签的PDF）
+pdftoc semantic document.pdf -o output.md
+
 # 指定输出格式
-pdftoc extract document.pdf -o output.json -f json
+pdftoc smart document.pdf -o output.json -f json
 
 # 设置最大层级深度
-pdftoc extract document.pdf -o output.xml --max-depth 3
+pdftoc smart document.pdf -o output.xml --max-depth 3
 
 # 自定义标题和页码格式
-pdftoc extract document.pdf -o output.txt --title "我的文档目录" --page-format "第 {0} 页"
+pdftoc smart document.pdf -o output.txt --title "我的文档目录" --page-format "第 {0} 页"
 
-# 包含页码和链接信息
-pdftoc extract document.pdf -o output.md --include-pages --include-links
+# 语义分析 - 严格模式（更精确的标题识别）
+pdftoc semantic document.pdf -o output.md --mode strict --confidence 0.7
+
+# 语义分析 - 调试模式（查看分析过程）
+pdftoc semantic document.pdf -o output.md --debug --verbose
+
+# 结构分析 - 宽松模式（识别更多潜在标题）
+pdftoc analyze document.pdf -o output.md --relaxed
+
+# 结构分析 - 自定义参数
+pdftoc analyze document.pdf -o output.md --min-font-size 14 --use-bold --debug
+
+# 智能提取 - 带结构分析配置
+pdftoc smart document.pdf -o output.md --analysis-preset strict --debug-analysis
 
 # 显示详细输出
-pdftoc extract document.pdf -o output.md --verbose
+pdftoc smart document.pdf -o output.md --verbose
 
-# 诊断PDF文件问题（当遇到读取错误时很有用）
+# 诊断PDF文件问题
 pdftoc diagnose document.pdf
 ```
 
@@ -82,12 +102,34 @@ pdftoc diagnose document.pdf
 ```csharp
 using PdfTocExtractor;
 using PdfTocExtractor.Exporters;
+using PdfTocExtractor.Models;
 
 // 创建提取器实例
 var extractor = new PdfTocExtractor();
 
-// 提取目录
-var tocItems = await extractor.ExtractTocAsync("document.pdf");
+// 🌟 智能提取（推荐）- 自动选择最佳方法
+var tocItems = await extractor.ExtractTocSmartAsync("document.pdf");
+
+// 📖 传统方法：提取PDF书签
+var bookmarkItems = await extractor.ExtractTocAsync("document.pdf");
+
+// 🧠 结构分析：适用于无书签的PDF
+var structureItems = await extractor.AnalyzeStructureAsync("document.pdf");
+
+// 🧠 结构分析：使用自定义配置
+var analysisOptions = new StructureAnalysisOptions
+{
+    MinFontSizeForHeading = 14f,
+    UseBoldAsIndicator = true,
+    MaxHeadingLevels = 4,
+    RequireStandaloneHeadings = true,
+    DebugMode = false
+};
+var customStructureItems = await extractor.AnalyzeStructureAsync("document.pdf", analysisOptions);
+
+// 🧠 使用预设配置
+var strictItems = await extractor.AnalyzeStructureAsync("document.pdf", StructureAnalysisOptions.Strict);
+var relaxedItems = await extractor.AnalyzeStructureAsync("document.pdf", StructureAnalysisOptions.Relaxed);
 
 // 导出为Markdown
 await extractor.ExportToFileAsync(tocItems, "output.md", "markdown");
@@ -101,13 +143,52 @@ var exportOptions = new ExportOptions
 };
 await extractor.ExportToFileAsync(tocItems, "output.json", "json", exportOptions);
 
-// 直接从PDF提取并导出
-await extractor.ExtractAndExportAsync("document.pdf", "output.xml");
+// 智能提取并直接导出
+await extractor.ExtractSmartAndExportAsync("document.pdf", "output.xml",
+    exportOptions: exportOptions,
+    structureOptions: StructureAnalysisOptions.Default);
 ```
 
 ## 📋 参数说明
 
-### 提取命令(extract)
+### 智能提取命令(smart) 🌟 推荐
+
+| 参数 | 缩写 | 说明 | 是否必需 |
+| --- | --- | --- | --- |
+| `input` | `-i` | 输入PDF文件路径 | 是 |
+| `--output` | `-o` | 输出文件路径 | 否，默认为控制台输出 |
+| `--format` | `-f` | 输出格式 (markdown/json/xml/text) | 否，默认为markdown |
+| `--max-depth` | `-d` | 最大层级深度 | 否，默认为0（无限制） |
+| `--include-pages` | `-p` | 包含页码信息 | 否，默认为true |
+| `--include-links` | `-l` | 包含链接信息 | 否，默认为false |
+| `--title` | `-t` | 自定义文档标题 | 否 |
+| `--verbose` | `-v` | 显示详细输出 | 否 |
+| `--analysis-preset` | - | 结构分析预设 (default/strict/relaxed) | 否，默认为default |
+| `--min-font-size` | - | 标题最小字体大小（结构分析时） | 否 |
+| `--use-bold` | - | 将粗体作为标题指示器（结构分析时） | 否 |
+| `--debug-analysis` | - | 启用结构分析调试模式 | 否 |
+
+### 结构分析命令(analyze) 🧠
+
+| 参数 | 缩写 | 说明 | 是否必需 |
+| --- | --- | --- | --- |
+| `input` | `-i` | 输入PDF文件路径 | 是 |
+| `--output` | `-o` | 输出文件路径 | 否，默认为控制台输出 |
+| `--format` | `-f` | 输出格式 (markdown/json/xml/text) | 否，默认为markdown |
+| `--max-depth` | `-d` | 最大层级深度 | 否，默认为0（无限制） |
+| `--verbose` | `-v` | 显示详细输出 | 否 |
+| `--min-font-size` | - | 标题的最小字体大小 | 否，默认为12 |
+| `--use-bold` | - | 将粗体文本作为标题指示器 | 否，默认为true |
+| `--use-italic` | - | 将斜体文本作为标题指示器 | 否，默认为false |
+| `--max-heading-levels` | - | 最大标题层级数 | 否，默认为6 |
+| `--require-standalone` | - | 要求标题独立成行 | 否，默认为true |
+| `--use-relative-size` | - | 使用相对字体大小分析 | 否，默认为true |
+| `--relative-size-multiplier` | - | 相对字体大小倍数阈值 | 否，默认为1.2 |
+| `--debug` | - | 启用调试模式 | 否 |
+| `--strict` | - | 使用严格模式配置 | 否 |
+| `--relaxed` | - | 使用宽松模式配置 | 否 |
+
+### 传统提取命令(extract) 📖
 
 | 参数 | 缩写 | 说明 | 是否必需 |
 | --- | --- | --- | --- |
@@ -139,9 +220,54 @@ await extractor.ExtractAndExportAsync("document.pdf", "output.xml");
 - `PageNumberFormat` - 页码格式化字符串
 - `Encoding` - 文件编码格式
 
+## 🧠 结构分析选项
+
+### 预设模式
+
+- **Default（默认）** - 平衡的识别精度，适合大多数文档
+- **Strict（严格）** - 更严格的标题识别条件，减少误识别
+- **Relaxed（宽松）** - 更宽松的识别条件，识别更多潜在标题
+
+### 自定义配置
+
+- `MinFontSizeForHeading` - 标题的最小字体大小阈值
+- `UseBoldAsIndicator` - 是否将粗体文本作为标题指示器
+- `UseItalicAsIndicator` - 是否将斜体文本作为标题指示器
+- `MaxHeadingLevels` - 最大标题层级数（1-6）
+- `RequireStandaloneHeadings` - 是否要求标题独立成行
+- `UseRelativeFontSizeAnalysis` - 是否使用相对字体大小分析
+- `RelativeFontSizeMultiplier` - 相对字体大小倍数阈值
+- `AnalyzeTextPosition` - 是否分析文本位置（左对齐等）
+- `IgnoreHeaderFooter` - 是否忽略页眉页脚区域
+- `EnableSmartFiltering` - 是否启用智能过滤
+- `DebugMode` - 是否启用调试模式（输出详细分析信息）
+
 ## 📝 示例输出
 
-### 提取PDF目录
+### 智能提取示例
+
+```
+正在智能处理PDF文件: document.pdf
+尝试提取PDF书签...
+PDF文件没有书签信息，切换到结构分析模式...
+结构分析完成
+提取方法: 结构分析
+成功提取 8 个顶级目录项
+总共 23 个目录项
+目录已导出到: output.md
+```
+
+### 结构分析调试示例
+
+```
+正在分析PDF文件结构: document.pdf
+总页数: 50
+提取到 1247 个文本片段
+识别到 23 个潜在标题
+生成 8 个目录项
+```
+
+### 传统提取示例
 
 ```
 正在从 document.pdf 提取目录...
@@ -242,16 +368,84 @@ extractor.RegisterExporter("custom", new CustomExporter());
 
 #### "此PDF文件没有目录（书签）信息" 错误
 
-这表示PDF文件确实没有嵌入的书签/目录信息。可以：
-- 使用诊断命令确认：`pdftoc diagnose your-document.pdf`
-- 检查PDF是否在其他阅读器中显示目录面板
-- 考虑使用其他工具为PDF添加书签
+这表示PDF文件确实没有嵌入的书签/目录信息。**现在有更好的解决方案**：
+
+1. **🌟 使用智能提取（推荐）**：
+   ```bash
+   pdftoc smart your-document.pdf -o output.md
+   ```
+   智能提取会自动切换到结构分析模式。
+
+2. **🧠 直接使用结构分析**：
+   ```bash
+   pdftoc analyze your-document.pdf -o output.md
+   ```
+
+3. **调整分析参数**：
+   ```bash
+   # 宽松模式，识别更多潜在标题
+   pdftoc analyze your-document.pdf -o output.md --relaxed
+
+   # 自定义参数
+   pdftoc analyze your-document.pdf -o output.md --min-font-size 10 --use-bold
+
+   # 启用调试模式查看详细信息
+   pdftoc analyze your-document.pdf -o output.md --debug
+   ```
+
+#### 结构分析没有识别到标题
+
+如果结构分析没有识别到任何标题，可以尝试：
+
+1. **使用宽松模式**：
+   ```bash
+   pdftoc analyze your-document.pdf -o output.md --relaxed
+   ```
+
+2. **降低字体大小阈值**：
+   ```bash
+   pdftoc analyze your-document.pdf -o output.md --min-font-size 8
+   ```
+
+3. **启用调试模式**查看详细信息：
+   ```bash
+   pdftoc analyze your-document.pdf -o output.md --debug
+   ```
+
+4. **调整其他参数**：
+   ```bash
+   # 不要求标题独立成行
+   pdftoc analyze your-document.pdf -o output.md --require-standalone false
+
+   # 同时使用粗体和斜体作为指示器
+   pdftoc analyze your-document.pdf -o output.md --use-bold --use-italic
+   ```
+
+#### 结构分析识别了太多错误的标题
+
+如果识别了太多不相关的文本作为标题：
+
+1. **使用严格模式**：
+   ```bash
+   pdftoc analyze your-document.pdf -o output.md --strict
+   ```
+
+2. **提高字体大小阈值**：
+   ```bash
+   pdftoc analyze your-document.pdf -o output.md --min-font-size 14
+   ```
+
+3. **要求标题独立成行**：
+   ```bash
+   pdftoc analyze your-document.pdf -o output.md --require-standalone
+   ```
 
 #### 输出文件为空或格式错误
 
 1. 检查输入PDF是否有有效的目录结构
 2. 尝试不同的输出格式：`-f json` 或 `-f xml`
 3. 使用 `--verbose` 选项查看详细处理信息
+4. 对于无书签的PDF，尝试结构分析功能
 
 ## 🛠️ 技术实现
 
